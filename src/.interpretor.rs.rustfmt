@@ -1,0 +1,95 @@
+use crate::tokens::Token;
+
+pub struct Tokenizer {
+    text: String,
+    pos: usize,
+}
+
+impl Tokenizer {
+    pub fn new(text: String) -> Tokenizer {
+        Tokenizer {
+            text,
+            pos: 0,
+        }
+    }
+    pub fn next_token(&mut self) -> Token {
+        let curr_char = match self.next_char() {
+            Some(c) => c,
+            None => return Token::EOF,
+        };
+
+        if curr_char.is_digit(10) {
+            return self.get_num(curr_char);
+        }
+         
+        return match curr_char {
+            '+' => Token::ADD, 
+            '-' => Token::MINUS, // could be a negative number or subtraction
+            '/' => Token::DIV,
+            '*' => Token::MUL,
+            ' ' => self.next_token(), // skip whitespace
+            _ => panic!("didnt expect character: {}", curr_char),
+        };
+    }
+    pub fn calculate(&mut self) -> Vec<Token> {
+        let mut tokens = Vec::new();
+
+        loop {
+            let token = self.next_token();
+            tokens.push(token);
+
+            if token == Token::EOF {
+                break;
+            }
+        }
+        tokens
+    }
+}
+
+impl Tokenizer {
+    fn next_char(&mut self) -> Option<char> {
+        self.pos += 1;
+        self.text.chars().nth(self.pos)
+    }
+    fn get_num(&mut self, start: char) -> Token {
+        let mut nums: Vec<char> = Vec::new();
+        nums.push(start);
+        while let Some(c) = self.next_char() {
+            if c.is_numeric() {
+                nums.push(c);
+            }
+            else {
+                break;
+            }
+        }
+        Token::NUM(nums.into_iter().collect::<String>().parse().unwrap())
+    }
+}
+
+
+
+
+pub struct Parser {
+   tokens: Vec<Token>,
+   pos: usize,
+}
+
+
+
+
+impl Parser {
+    pub fn next_term(&mut self) {
+        let curr_tokens: Vec<Token> = Vec::new();
+    }
+}
+
+
+
+impl Parser {
+    pub fn new(tokens: Vec<Token>) -> Parser{
+           Parser {
+               tokens,
+               pos: 0,
+           }
+    }
+}

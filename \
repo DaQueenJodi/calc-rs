@@ -1,0 +1,121 @@
+use crate::tokens::{Token, TokenFlavor, TokenValue};
+use std::mem::discriminant;
+
+pub struct Tokenizer {
+    text: String,
+    pos: usize,
+}
+
+impl Tokenizer {
+    pub fn new(text: String) -> Tokenizer {
+        Tokenizer { text, pos: 0 }
+    }
+    pub fn next_token(&mut self) -> Token {
+        let curr_char = match self.next_char() {
+            Some(c) => c,
+            None => return Token::new(TokenFlavor::EOF, None),
+        };
+
+        if curr_char.is_digit(10) {
+            return self.get_num(curr_char);
+        }
+
+        if curr_char == ' ' {
+            // skip white space
+            return self.next_token();
+        }
+
+        let flavor = match curr_char {
+            '+' => TokenFlavor::ADD,
+            '-' => TokenFlavor::MINUS, // could be a negative number or subtraction
+            '/' => TokenFlavor::DIV,
+            '*' => TokenFlavor::MUL,
+            _ => panic!("didnt expect character: {}", curr_char),
+        };
+        return Token::new(flavor, None);
+    }
+
+    pub fn calculate(&mut self) -> Vec<Token> {
+        let mut tokens = Vec::new();
+
+        loop {
+            let token = self.next_token();
+            tokens.push(token);
+            if token.flavor == TokenFlavor::EOF {
+                break;
+            }
+        }
+        tokens
+    }
+}
+impl Tokenizer {
+    fn next_char(&mut self) -> Option<char> {
+        self.pos += 1;
+        self.text.chars().nth(self.pos)
+    }
+    fn get_num(&mut self, start: char) -> Token {
+        let mut nums: Vec<char> = Vec::new();
+        nums.push(start);
+        while let Some(c) = self.next_char() {
+            if c.is_numeric() {
+                nums.push(c);
+            } else {
+                break;
+            }
+        }
+        let num = nums.into_iter().collect::<String>().parse().unwrap();
+        let token_value = TokenValue::NUM(num);
+        Token::new(TokenFlavor::NUMBER, Some(token_value))
+    }
+}
+
+pub struct Parser {
+    tokens: Vec<Token>,
+    pos: usize,
+    curr_token: Token,
+}
+
+impl Parser {
+    pub fn term(&mut self) -> TokenValue {
+        self.eat(TokenFlavor::NUMBER);
+        self.curr_token.value.unwrap()
+    }
+
+    pub fn eat(&mut self, compare: TokenFlavor) {
+        let flavor = self.tokens[self.pos].flavor;
+        if discriminant(&flavor) != discriminant(&compare) {
+            panic!(
+                "expected token: '{compare:?}', got token: '{}'",
+                self.tokens[self.pos]
+            );
+        }
+    }
+    pub fn expr(&mut self) {
+        // expr -> NUMBER PLUS NUMBER
+        let result = 0;
+        self.curr_token = self.next_token();
+        self.term();
+        match self.curr_token.flavor {
+            TokenFlavor::ADD => {
+                self.eat(TokenFlavor::ADD)
+                result += self.term();
+            }
+            TokenFlavor::MINUS => self.eat(TokenFlavor::MINUS),
+            _ => panic!("expected ADD or MINUS, got: {:?}", self.curr_token.flavor),
+        }
+    }
+    pub fn next_token(&mut self) -> Token {
+        self.pos += 1;
+        self.tokens[self.pos]
+    }
+}
+
+impl Parser {
+    pub fn new(tokens: Vec<Token>) -> Parser {
+        Parser {
+            tokens,
+            pos: 0,
+            curr_token: Token::new(TokenFlavor::NONE, None),
+        }
+    }
+}
